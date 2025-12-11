@@ -76,7 +76,9 @@ class Command(BaseCommand):
             )
             rows = cur.fetchall()
 
-            self.stdout.write(f"Fetched {len(rows)} articles from NAV. Starting bulk sync...")
+            self.stdout.write(
+                f"Fetched {len(rows)} articles from NAV. Starting bulk sync..."
+            )
 
             with transaction.atomic():
                 articles_to_update = []
@@ -103,14 +105,24 @@ class Command(BaseCommand):
 
                 if articles_to_create:
                     Article.objects.bulk_create(articles_to_create, batch_size=1000)
-                    self.stdout.write(self.style.SUCCESS(f"Created {len(articles_to_create)} new articles"))
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Created {len(articles_to_create)} new articles"
+                        )
+                    )
 
                 if articles_to_update:
                     Article.objects.bulk_update(
                         articles_to_update, ["description"], batch_size=1000
                     )
-                    self.stdout.write(self.style.SUCCESS(f"Updated {len(articles_to_update)} existing articles"))
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Updated {len(articles_to_update)} existing articles"
+                        )
+                    )
 
-            self.stdout.write(self.style.SUCCESS(f"Sync complete! Total: {len(rows)} articles"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Sync complete! Total: {len(rows)} articles")
+            )
         finally:
             conn.close()

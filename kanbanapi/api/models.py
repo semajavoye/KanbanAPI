@@ -27,9 +27,7 @@ class Article(models.Model):
 class Tags(models.Model):
     """RFID tag model linking tag IDs to article numbers"""
 
-    tag_id = models.CharField(
-        max_length=24, db_index=True, primary_key=True
-    )
+    tag_id = models.CharField(max_length=24, db_index=True, primary_key=True)
     art_no = models.ForeignKey(Article, on_delete=models.CASCADE, db_index=True)
     status = models.IntegerField(
         "Status",

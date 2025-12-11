@@ -4,19 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0002_alter_article_art_no_alter_article_art_supplier_and_more'),
+        ("api", "0002_alter_article_art_no_alter_article_art_supplier_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='tags',
-            name='id',
+            model_name="tags",
+            name="id",
         ),
         migrations.AlterField(
-            model_name='tags',
-            name='tag_id',
-            field=models.CharField(db_index=True, max_length=24, primary_key=True, serialize=False),
+            model_name="tags",
+            name="tag_id",
+            field=models.CharField(
+                db_index=True, max_length=24, primary_key=True, serialize=False
+            ),
         ),
     ]
