@@ -127,7 +127,7 @@ spec:
             - name: sync-articles-and-descriptions
               image: gitlab-registry.otec.de:5050/k8s/tier-2/kanbanapi/kanbanapi:{{ .Values.application.version }}
               command: ["uv"]
-              args: ["run", "manage.py", "shell", "-c", "from api.sync.nav_article_sync import run_sync; run_sync()"]
+              args: ["run", "manage.py", "nav_article_sync"]
               env: {{ .Values.application.env | nindent 16 }}
           restartPolicy: OnFailure
           imagePullSecrets:
