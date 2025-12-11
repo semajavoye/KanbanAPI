@@ -25,3 +25,8 @@ application:
       value: $POSTGRES_DB_PASSWORD
     - name: POSTGRES_DB_USER
       value: $POSTGRES_DB_USER
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+
