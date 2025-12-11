@@ -77,7 +77,7 @@ spec:
           env: {{ .Values.application.env | nindent 12 }}
           volumeMounts:
             - name: staticfiles
-              mountPath: /usr/src/app/static
+              mountPath: /app/static
       containers:
         - name: {{ .Values.application.name }}
           image: gitlab-registry.otec.de:5050/k8s/tier-2/kanbanapi/kanbanapi:{{ .Values.application.version }}
@@ -103,7 +103,7 @@ spec:
           env: {{ .Values.application.env | nindent 12 }}
           volumeMounts:
             - name: staticfiles
-              mountPath: /usr/src/app/static
+              mountPath: /app/static
       imagePullSecrets:
         - name: gitlab-registry
       volumes:
