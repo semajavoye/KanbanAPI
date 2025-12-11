@@ -182,8 +182,8 @@ spec:
   ports:
     - port: 80
 ---
-apiVersion: v1
 kind: PersistentVolumeClaim
+apiVersion: v1
 metadata:
   name: staticfiles
 spec:
@@ -191,5 +191,6 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
   storageClassName: netapp
+  volumeMode: Filesystem
