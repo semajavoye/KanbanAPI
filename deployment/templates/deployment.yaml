@@ -85,22 +85,22 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
-          livenessProbe:
-            httpGet:
-              path: /health/
-              port: 80
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /ready/
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 5
-            timeoutSeconds: 15
-            failureThreshold: 3
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health/
+          #     port: 80
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 10
+          #   timeoutSeconds: 5
+          #   failureThreshold: 3
+          # readinessProbe:
+          #   httpGet:
+          #     path: /ready/
+          #     port: 80
+          #   initialDelaySeconds: 15
+          #   periodSeconds: 5
+          #   timeoutSeconds: 15
+          #   failureThreshold: 3
           env: {{ .Values.application.env | nindent 12 }}
           volumeMounts:
             - name: staticfiles
