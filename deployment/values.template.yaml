@@ -2,7 +2,7 @@
 application:
   name: django
   environment: $ENVIRONMENT
-  dbhost: $DB_HOST
+  dbhost: $POSTGRES_DB_HOST
   version: $VERSION
   env: |-
     - name: ALLOWED_HOST
