@@ -9,6 +9,7 @@ dependencies = [
     "django-filter>=25.2",
     "djangorestframework>=3.16.1",
     "drf-spectacular>=0.29.0",
+    "gunicorn",
     "psycopg2-binary>=2.9.11",
     "pyodbc>=5.3.0",
 ]
