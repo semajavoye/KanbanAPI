@@ -1,0 +1,27 @@
+
+application:
+  name: django
+  environment: $ENVIRONMENT
+  dbhost: $DB_HOST
+  version: $VERSION
+  env: |-
+    - name: ALLOWED_HOST
+      value: $ALLOWED_HOST
+    - name: DB_PASSWORD
+      value: $DB_PASSWORD
+    - name: KUBERNETES_NAMESPACE_OVERWRITE
+      value: $KUBERNETES_NAMESPACE_OVERWRITE
+    - name: NAV64BIT_PASSWORD
+      value: $NAV64BIT_PASSWORD
+    - name: NAV64BIT_USER
+      value: $NAV64BIT_USER
+    - name: NAV_HOST
+      value: $NAV_HOST
+    - name: POSTGRES_DB_HOST
+      value: $POSTGRES_DB_HOST
+    - name: POSTGRES_DB_NAME
+      value: $POSTGRES_DB_NAME
+    - name: POSTGRES_DB_PASSWORD
+      value: $POSTGRES_DB_PASSWORD
+    - name: POSTGRES_DB_USER
+      value: $POSTGRES_DB_USER

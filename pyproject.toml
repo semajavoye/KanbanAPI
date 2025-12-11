@@ -1,0 +1,14 @@
+[project]
+name = "kanbanapi"
+version = "0.1.0"
+description = "KanbanAPI is a simple REST API for the KanbanSoftware."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=5.2.8",
+    "django-filter>=25.2",
+    "djangorestframework>=3.16.1",
+    "drf-spectacular>=0.29.0",
+    "psycopg2-binary>=2.9.11",
+    "pyodbc>=5.3.0",
+]
