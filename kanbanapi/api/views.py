@@ -515,20 +515,37 @@ class TagsView(APIView):
     )
     def delete(self, request):
         body = request.data or {}
-        tag_id = body.get("tag_id")
+        tag_ids = body.get("tag_ids")
 
-        if not tag_id:
+        if not tag_ids:
             return Response(
-                {"success": False, "error": "tag_id is required"},
+                {"success": False, "error": "tag_ids is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        tag = Tags.objects.filter(tag_id=tag_id).first()
-        if not tag:
+        # Split tag_ids by semicolon and strip whitespace
+        tag_id_list = [tid.strip() for tid in tag_ids.split(";") if tid.strip()]
+
+        if not tag_id_list:
             return Response(
-                {"success": False, "error": "Tag not found"},
+                {"success": False, "error": "No valid tag_ids provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Find all matching tags
+        tags = Tags.objects.filter(tag_id__in=tag_id_list)
+        
+        if not tags.exists():
+            return Response(
+                {"success": False, "error": "No tags found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        tag.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # Delete all found tags
+        deleted_count = tags.count()
+        tags.delete()
+        
+        return Response(
+            {"success": True, "message": f"{deleted_count} tag(s) deleted"},
+            status=status.HTTP_200_OK,
+        )
