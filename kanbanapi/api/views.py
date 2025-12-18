@@ -235,7 +235,10 @@ class TagsView(APIView):
                                             "art_no": {"type": "string"},
                                             "description": {"type": "string"},
                                             "status": {"type": "integer"},
-                                            "created_at": {"type": "string", "format": "date-time"},
+                                            "created_at": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                            },
                                         },
                                     },
                                 },
@@ -252,7 +255,13 @@ class TagsView(APIView):
             "tag_id", "art_no__art_no", "art_no__description", "status", "created_at"
         )
         data = [
-            {"tag_id": t.tag_id, "art_no": t.art_no.art_no, "description": t.art_no.description, "status": t.status, "created_at": t.created_at}
+            {
+                "tag_id": t.tag_id,
+                "art_no": t.art_no.art_no,
+                "description": t.art_no.description,
+                "status": t.status,
+                "created_at": t.created_at,
+            }
             for t in qs
         ]
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
