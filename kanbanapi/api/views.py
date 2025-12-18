@@ -534,7 +534,7 @@ class TagsView(APIView):
 
         # Find all matching tags
         tags = Tags.objects.filter(tag_id__in=tag_id_list)
-        
+
         if not tags.exists():
             return Response(
                 {"success": False, "error": "No tags found"},
@@ -544,7 +544,7 @@ class TagsView(APIView):
         # Delete all found tags
         deleted_count = tags.count()
         tags.delete()
-        
+
         return Response(
             {"success": True, "message": f"{deleted_count} tag(s) deleted"},
             status=status.HTTP_200_OK,
