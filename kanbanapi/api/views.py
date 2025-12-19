@@ -16,14 +16,6 @@ import secrets
 import string
 
 
-def ok(data, code=status.HTTP_200_OK):
-    return Response({"success": True, "data": data}, status=code)
-
-
-def err(message, code=status.HTTP_400_BAD_REQUEST):
-    return Response({"success": False, "error": message}, status=code)
-
-
 class ArticlesView(APIView):
     """Resource-stable /api/articles/ endpoint.
     GET: list all articles
