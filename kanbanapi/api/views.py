@@ -4,8 +4,8 @@ Clean endpoints returning flat JSON consistently:
 {"success": true, "data": ...} or {"success": false, "error": "..."}
 """
 
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,44 +27,57 @@ class ArticlesView(APIView):
     """Resource-stable /api/articles/ endpoint.
     GET: list all articles
     POST: create or update article (action in body)
-    DELETE: delete article (art_no in body)
     """
 
     @extend_schema(
         summary="Liste aller Artikel",
+        parameters=[
+            OpenApiParameter(
+                name="art_no",
+                description="Filter by Article Number",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="art_supplier",
+                description="Filter by Supplier",
+                required=False,
+                type=str,
+                enum=["OKB", "RKB", "SW"],
+            ),
+        ],
         responses={
-            200: {
-                "description": "Success",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": True},
-                                "data": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "art_no": {"type": "string"},
-                                            "art_supplier": {
-                                                "type": "string",
-                                                "enum": ["OKB", "RKB", "SW"],
-                                            },
-                                            "description": {"type": "string"},
-                                        },
-                                    },
-                                },
-                            },
-                        }
-                    }
+            200: inline_serializer(
+                name="ArticleListResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "data": inline_serializer(
+                        name="ArticleData",
+                        fields={
+                            "art_no": serializers.CharField(),
+                            "art_supplier": serializers.ChoiceField(
+                                choices=["OKB", "RKB", "SW"]
+                            ),
+                            "description": serializers.CharField(),
+                        },
+                        many=True,
+                    ),
                 },
-            }
+            )
         },
         tags=["Articles"],
     )
     def get(self, request):
         qs = Article.objects.all().only("art_no", "art_supplier", "description")
+
+        art_no = request.query_params.get("art_no")
+        if art_no:
+            qs = qs.filter(art_no__icontains=art_no)
+
+        art_supplier = request.query_params.get("art_supplier")
+        if art_supplier:
+            qs = qs.filter(art_supplier=art_supplier)
+
         data = [
             {
                 "art_no": a.art_no,
@@ -77,77 +90,51 @@ class ArticlesView(APIView):
 
     @extend_schema(
         summary="Artikel art_supplier aktualisieren",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "action": {"type": "string", "enum": ["update"]},
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "art_no": {"type": "string"},
-                            "art_supplier": {
-                                "type": "string",
-                                "enum": ["OKB", "RKB", "SW"],
-                            },
-                        },
-                        "required": ["art_no", "art_supplier"],
+        request=inline_serializer(
+            name="ArticleUpdateRequest",
+            fields={
+                "action": serializers.ChoiceField(choices=["update"]),
+                "data": inline_serializer(
+                    name="ArticleUpdateData",
+                    fields={
+                        "art_no": serializers.CharField(),
+                        "art_supplier": serializers.ChoiceField(
+                            choices=["OKB", "RKB", "SW"]
+                        ),
                     },
-                },
-                "required": ["action", "data"],
-            }
-        },
+                ),
+            },
+        ),
         responses={
-            200: {
-                "description": "Success",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": True},
-                                "message": {"type": "string"},
-                                "data": {
-                                    "type": "object",
-                                    "properties": {
-                                        "art_no": {"type": "string"},
-                                        "art_supplier": {"type": "string"},
-                                        "description": {"type": "string"},
-                                    },
-                                },
-                            },
-                        }
-                    }
+            200: inline_serializer(
+                name="ArticleUpdateResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "message": serializers.CharField(),
+                    "data": inline_serializer(
+                        name="ArticleUpdateResponseData",
+                        fields={
+                            "art_no": serializers.CharField(),
+                            "art_supplier": serializers.CharField(),
+                            "description": serializers.CharField(),
+                        },
+                    ),
                 },
-            },
-            400: {
-                "description": "Error",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": False},
-                                "error": {"type": "string"},
-                            },
-                        }
-                    }
+            ),
+            400: inline_serializer(
+                name="ErrorResponse400",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
                 },
-            },
-            404: {
-                "description": "Article not found",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": False},
-                                "error": {"type": "string"},
-                            },
-                        }
-                    }
+            ),
+            404: inline_serializer(
+                name="ErrorResponse404",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
                 },
-            },
+            ),
         },
         tags=["Articles"],
     )
@@ -217,36 +204,45 @@ class TagsView(APIView):
 
     @extend_schema(
         summary="Liste aller Tags",
+        parameters=[
+            OpenApiParameter(
+                name="tag_id",
+                description="Filter by Tag ID",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="art_no",
+                description="Filter by Article Number",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="status",
+                description="Filter by Status (0 or 1)",
+                required=False,
+                type=int,
+                enum=[0, 1],
+            ),
+        ],
         responses={
-            200: {
-                "description": "Success",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": True},
-                                "data": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "tag_id": {"type": "string"},
-                                            "art_no": {"type": "string"},
-                                            "description": {"type": "string"},
-                                            "status": {"type": "integer"},
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        }
-                    }
+            200: inline_serializer(
+                name="TagListResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "data": inline_serializer(
+                        name="TagData",
+                        fields={
+                            "tag_id": serializers.CharField(),
+                            "art_no": serializers.CharField(),
+                            "description": serializers.CharField(),
+                            "status": serializers.IntegerField(),
+                            "created_at": serializers.DateTimeField(),
+                        },
+                        many=True,
+                    ),
                 },
-            }
+            )
         },
         tags=["Tags"],
     )
@@ -254,6 +250,22 @@ class TagsView(APIView):
         qs = Tags.objects.select_related("art_no").only(
             "tag_id", "art_no__art_no", "art_no__description", "status", "created_at"
         )
+
+        tag_id = request.query_params.get("tag_id")
+        if tag_id:
+            qs = qs.filter(tag_id__icontains=tag_id)
+
+        art_no = request.query_params.get("art_no")
+        if art_no:
+            qs = qs.filter(art_no__art_no__icontains=art_no)
+
+        status_param = request.query_params.get("status")
+        if status_param is not None:
+            try:
+                qs = qs.filter(status=int(status_param))
+            except ValueError:
+                pass
+
         data = [
             {
                 "tag_id": t.tag_id,
@@ -268,64 +280,48 @@ class TagsView(APIView):
 
     @extend_schema(
         summary="Tag anlegen, aktualisieren, Status setzen oder generieren",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "action": {
-                        "type": "string",
-                        "enum": ["create", "update", "set_status", "generate"],
+        request=inline_serializer(
+            name="TagActionRequest",
+            fields={
+                "action": serializers.ChoiceField(
+                    choices=["create", "update", "set_status", "generate"]
+                ),
+                "data": inline_serializer(
+                    name="TagActionData",
+                    fields={
+                        "tag_id": serializers.CharField(required=False),
+                        "art_no": serializers.CharField(required=False),
+                        "status": serializers.ChoiceField(
+                            choices=[0, 1], required=False
+                        ),
+                        "preferred_tag_id": serializers.CharField(required=False),
                     },
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "tag_id": {"type": "string"},
-                            "art_no": {"type": "string"},
-                            "status": {"type": "integer", "enum": [0, 1]},
-                            "preferred_tag_id": {"type": "string"},
-                        },
-                    },
-                },
-                "required": ["action"],
-            }
-        },
+                ),
+            },
+        ),
         responses={
-            200: {
-                "description": "Success",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": True},
-                                "message": {"type": "string"},
-                                "data": {
-                                    "type": "object",
-                                    "properties": {
-                                        "tag_id": {"type": "string"},
-                                        "art_no": {"type": "string"},
-                                        "status": {"type": "integer"},
-                                    },
-                                },
-                            },
-                        }
-                    }
+            200: inline_serializer(
+                name="TagActionResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "message": serializers.CharField(),
+                    "data": inline_serializer(
+                        name="TagActionResponseData",
+                        fields={
+                            "tag_id": serializers.CharField(required=False),
+                            "art_no": serializers.CharField(required=False),
+                            "status": serializers.IntegerField(required=False),
+                        },
+                    ),
                 },
-            },
-            400: {
-                "description": "Error",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": False},
-                                "error": {"type": "string"},
-                            },
-                        }
-                    }
+            ),
+            400: inline_serializer(
+                name="TagErrorResponse400",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
                 },
-            },
+            ),
         },
         tags=["Tags"],
     )
@@ -471,45 +467,36 @@ class TagsView(APIView):
 
     @extend_schema(
         summary="Tag löschen",
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "tag_id": {"type": "string"},
-                },
-                "required": ["tag_id"],
-            }
-        },
+        request=inline_serializer(
+            name="TagDeleteRequest",
+            fields={
+                "tag_ids": serializers.CharField(
+                    help_text="Semicolon separated list of tag IDs"
+                )
+            },
+        ),
         responses={
-            204: {"description": "Tag deleted"},
-            400: {
-                "description": "Bad Request",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": False},
-                                "error": {"type": "string"},
-                            },
-                        }
-                    }
+            200: inline_serializer(
+                name="TagDeleteResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "message": serializers.CharField(),
                 },
-            },
-            404: {
-                "description": "Tag not found",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "success": {"type": "boolean", "example": False},
-                                "error": {"type": "string"},
-                            },
-                        }
-                    }
+            ),
+            400: inline_serializer(
+                name="TagDeleteErrorResponse400",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
                 },
-            },
+            ),
+            404: inline_serializer(
+                name="TagDeleteErrorResponse404",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
+                },
+            ),
         },
         tags=["Tags"],
     )
