@@ -292,12 +292,12 @@ class TagsView(APIView):
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
     @extend_schema(
-        summary="Tag anlegen, aktualisieren, Status setzen oder generieren",
+        summary="Tag anlegen, aktualisieren, Status setzen, generieren oder suchen",
         request=inline_serializer(
             name="TagActionRequest",
             fields={
                 "action": serializers.ChoiceField(
-                    choices=["create", "update", "set_status", "generate"]
+                    choices=["create", "update", "set_status", "generate", "search"]
                 ),
                 "data": inline_serializer(
                     name="TagActionData",
@@ -343,7 +343,7 @@ class TagsView(APIView):
         action = body.get("action")
         data = body.get("data", {})
 
-        if not action or action not in ["create", "update", "set_status", "generate"]:
+        if not action or action not in ["create", "update", "set_status", "generate", "search"]:
             return Response(
                 {"success": False, "error": "Invalid action"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -469,6 +469,31 @@ class TagsView(APIView):
                 {
                     "success": True,
                     "message": "Status updated",
+                    "data": {
+                        "tag_id": tag.tag_id,
+                        "art_no": tag.art_no.art_no,
+                        "status": tag.status,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        elif action == "search":
+            if not tag_id:
+                return Response(
+                    {"success": False, "error": "tag_id is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            tag = Tags.objects.filter(tag_id=tag_id).first()
+            if not tag:
+                return Response(
+                    {"success": False, "error": "Tag not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(
+                {
+                    "success": True,
+                    "message": "Searched tag",
                     "data": {
                         "tag_id": tag.tag_id,
                         "art_no": tag.art_no.art_no,
