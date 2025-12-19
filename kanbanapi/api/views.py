@@ -503,7 +503,9 @@ class TagsView(APIView):
                     "data": {
                         "tag_id": tag.tag_id,
                         "art_no": tag.art_no.art_no,
+                        "description": tag.art_no.description,
                         "status": tag.status,
+                        "art_supplier": tag.art_no.art_supplier,
                     },
                 },
                 status=status.HTTP_200_OK,
