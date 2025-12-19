@@ -343,7 +343,13 @@ class TagsView(APIView):
         action = body.get("action")
         data = body.get("data", {})
 
-        if not action or action not in ["create", "update", "set_status", "generate", "search"]:
+        if not action or action not in [
+            "create",
+            "update",
+            "set_status",
+            "generate",
+            "search",
+        ]:
             return Response(
                 {"success": False, "error": "Invalid action"},
                 status=status.HTTP_400_BAD_REQUEST,
