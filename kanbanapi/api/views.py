@@ -463,26 +463,68 @@ class TagsView(APIView):
                     {"success": False, "error": "status must be 0 or 1"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            tag = Tags.objects.filter(tag_id=tag_id).first()
-            if not tag:
+
+            # Handle multiple tag_ids separated by ;
+            tag_ids = [t.strip() for t in tag_id.split(";") if t.strip()]
+
+            if not tag_ids:
                 return Response(
-                    {"success": False, "error": "Tag not found"},
-                    status=status.HTTP_404_NOT_FOUND,
+                    {"success": False, "error": "No valid tag_id provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            tag.status = tag_status
-            tag.save()
-            return Response(
-                {
-                    "success": True,
-                    "message": "Status updated",
-                    "data": {
+
+            updated_tags = []
+            not_found_tags = []
+
+            # Fetch all tags at once
+            tags = Tags.objects.filter(tag_id__in=tag_ids)
+            tags_dict = {tag.tag_id: tag for tag in tags}
+
+            for tid in tag_ids:
+                tag = tags_dict.get(tid)
+                if not tag:
+                    not_found_tags.append(tid)
+                    continue
+
+                tag.status = tag_status
+                tag.save()
+                updated_tags.append(
+                    {
                         "tag_id": tag.tag_id,
                         "art_no": tag.art_no.art_no,
                         "status": tag.status,
+                    }
+                )
+
+            if not updated_tags:
+                return Response(
+                    {
+                        "success": False,
+                        "error": f"Tags not found: {', '.join(not_found_tags)}",
                     },
-                },
-                status=status.HTTP_200_OK,
-            )
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Return list if multiple IDs were requested or if semicolon was present
+            if ";" in tag_id or len(tag_ids) > 1:
+                return Response(
+                    {
+                        "success": True,
+                        "message": f"Status updated for {len(updated_tags)} tags",
+                        "data": updated_tags,
+                        "not_found": not_found_tags if not_found_tags else None,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {
+                        "success": True,
+                        "message": "Status updated",
+                        "data": updated_tags[0],
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         elif action == "search":
             if not tag_id:
