@@ -71,7 +71,10 @@ class Command(BaseCommand):
             cur.execute(
                 """
                 SELECT [No_], [Description]
-                FROM [dbo].[OTEC$Item]
+                FROM [dbo].[OTEC$Item] 
+                WHERE [No_] NOT LIKE ''
+                AND [No_] NOT LIKE '%#%'
+                AND [No_] NOT LIKE 'Z%'
                 """
             )
             rows = cur.fetchall()

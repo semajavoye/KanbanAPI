@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParam
 from rest_framework import status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Q
 
 from api.models import Article, Tags
 
@@ -32,6 +33,12 @@ class ArticlesView(APIView):
     @extend_schema(
         summary="Liste aller Artikel",
         parameters=[
+            OpenApiParameter(
+                name="search",
+                description="Search in Article Number or Description",
+                required=False,
+                type=str,
+            ),
             OpenApiParameter(
                 name="art_no",
                 description="Filter by Article Number",
@@ -69,6 +76,10 @@ class ArticlesView(APIView):
     )
     def get(self, request):
         qs = Article.objects.all().only("art_no", "art_supplier", "description")
+
+        search = request.query_params.get("search")
+        if search:
+            qs = qs.filter(Q(art_no__icontains=search))
 
         art_no = request.query_params.get("art_no")
         if art_no:
@@ -237,6 +248,7 @@ class TagsView(APIView):
                             "art_no": serializers.CharField(),
                             "description": serializers.CharField(),
                             "status": serializers.IntegerField(),
+                            "art_supplier": serializers.CharField(),
                             "created_at": serializers.DateTimeField(),
                         },
                         many=True,
@@ -272,6 +284,7 @@ class TagsView(APIView):
                 "art_no": t.art_no.art_no,
                 "description": t.art_no.description,
                 "status": t.status,
+                "art_supplier": t.art_no.art_supplier,
                 "created_at": t.created_at,
             }
             for t in qs
