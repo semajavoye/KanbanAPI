@@ -97,17 +97,9 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_DB_PASSWORD"),
         "HOST": os.environ.get("POSTGRES_DB_HOST"),
     },
-    # "powerdb": {
-    #     "ENGINE": "mssql",
-    #     "NAME": "PowerDB",
-    #     "USER": os.environ.get("POWERDB_USER"),
-    #     "PASSWORD": os.environ.get("POWERDB_PASSWORD"),
-    #     "HOST": os.environ.get("POWERDB_HOST"),
-    #     "PORT": "",
-    #     "OPTIONS": {
-    #         "driver": "ODBC Driver 18 for SQL Server",
-    #         "extra_params": "TrustServerCertificate=yes;",
-    #     },
+    # "default": {
+    #     "ENGINE": "django.db.backends.sqlite3",
+    #     "NAME": BASE_DIR / "db.sqlite3",
     # },
 }
 
