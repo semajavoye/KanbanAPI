@@ -51,6 +51,7 @@ class OrderProposal(models.Model):
     STATUS_FREIGEGEBEN = "FREIGEGEBEN"
     STATUS_VERWORFEN = "VERWORFEN"
     STATUS_GEMELDET = "GEMELDET"
+    STATUS_ABGESCHLOSSEN = "ABGESCHLOSSEN"
 
     STATUS_CHOICES = [
         (STATUS_NEU, "Neu"),
@@ -58,6 +59,7 @@ class OrderProposal(models.Model):
         (STATUS_FREIGEGEBEN, "Freigegeben"),
         (STATUS_VERWORFEN, "Verworfen"),
         (STATUS_GEMELDET, "Gemeldet"),
+        (STATUS_ABGESCHLOSSEN, "Abgeschlossen"),
     ]
 
     lieferant = models.CharField(
@@ -100,8 +102,9 @@ class OrderProposal(models.Model):
             self.STATUS_NEU: [self.STATUS_GEPRUEFT],
             self.STATUS_GEPRUEFT: [self.STATUS_FREIGEGEBEN, self.STATUS_VERWORFEN],
             self.STATUS_FREIGEGEBEN: [self.STATUS_GEMELDET],
-            self.STATUS_VERWORFEN: [],
+            self.STATUS_VERWORFEN: [self.STATUS_FREIGEGEBEN, self.STATUS_GEPRUEFT],
             self.STATUS_GEMELDET: [],
+            self.STATUS_ABGESCHLOSSEN: []
         }
         return new_status in allowed_transitions.get(self.status, [])
 
@@ -119,6 +122,33 @@ class OrderProposal(models.Model):
         ordering = ["-updated_at"]
 
 
+def delete_order_proposals_if_max_reached(article):
+    """Delete order proposals when kanban_min is reached with status=1 tags.
+    
+    Args:
+        article: Article instance to check
+        
+    Returns:
+        int: Number of deleted order proposals
+    """
+    # Count present tags with status=1 (full/present)
+    present = Tags.objects.filter(art_no=article, status=1).count()
+    
+    # If kanban_min is reached or exceeded, delete open order proposals
+    if present >= article.kanban_min:
+        deleted_count = OrderProposal.objects.filter(
+            artikelnummer=article.art_no,
+            status__in=[
+                OrderProposal.STATUS_NEU,
+                OrderProposal.STATUS_GEPRUEFT,
+                OrderProposal.STATUS_FREIGEGEBEN,
+            ],
+        ).delete()[0]
+        return deleted_count
+    
+    return 0
+
+
 def generate_order_proposals_for_article(article, force=False):
     """Helper function to generate order proposals for a specific article.
     
@@ -130,6 +160,11 @@ def generate_order_proposals_for_article(article, force=False):
         OrderProposal instance if created, None otherwise
     """
     present = Tags.objects.filter(art_no=article, status=1).count()
+    
+    # If kanban_min is reached, delete existing proposals
+    if present >= article.kanban_min:
+        delete_order_proposals_if_max_reached(article)
+        return None
     
     already_ordered = OrderProposal.objects.filter(
         artikelnummer=article.art_no,

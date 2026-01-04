@@ -97,7 +97,7 @@ class OrderProposalStatusUpdateSerializer(serializers.Serializer):
 
     proposal_id = serializers.IntegerField()
     status = serializers.ChoiceField(
-        choices=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET"]
+        choices=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"]
     )
 
 

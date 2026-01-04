@@ -634,7 +634,7 @@ class OrderProposalView(APIView):
                 description="Filter by status",
                 required=False,
                 type=str,
-                enum=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET"],
+                enum=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"],
             ),
         ],
         responses={
@@ -670,6 +670,8 @@ class OrderProposalView(APIView):
         status_param = request.query_params.get("status")
         if status_param:
             qs = qs.filter(status=status_param)
+        else:
+            qs = qs.exclude(status=OrderProposal.STATUS_ABGESCHLOSSEN)
 
         data = [
             {
@@ -695,7 +697,7 @@ class OrderProposalView(APIView):
             fields={
                 "proposal_id": serializers.IntegerField(),
                 "status": serializers.ChoiceField(
-                    choices=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET"]
+                    choices=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"]
                 ),
             },
         ),
@@ -738,7 +740,7 @@ class OrderProposalView(APIView):
             )
 
         # Validate status value
-        valid_statuses = ["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET"]
+        valid_statuses = ["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"]
         if new_status not in valid_statuses:
             return Response(
                 {"success": False, "error": "Invalid status"},
