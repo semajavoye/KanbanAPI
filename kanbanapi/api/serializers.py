@@ -4,7 +4,7 @@ This module contains serializers for converting model instances to/from JSON.
 """
 
 from rest_framework import serializers
-from api.models import Article, Tags
+from api.models import Article, Tags, OrderProposal
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -66,3 +66,53 @@ class TagsSerializer(serializers.ModelSerializer):
             )
 
         return value.strip()
+
+
+class OrderProposalSerializer(serializers.ModelSerializer):
+    """Serializer for OrderProposal with camelCase JSON fields."""
+
+    proposal_id = serializers.IntegerField(source="id", read_only=True)
+    fehlmenge = serializers.IntegerField(read_only=True)
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+
+    class Meta:
+        model = OrderProposal
+        fields = [
+            "proposal_id",
+            "lieferant",
+            "artikelnummer",
+            "beschreibung",
+            "kanbanGesamt",
+            "anwesend",
+            "bereitsBestellt",
+            "fehlmenge",
+            "status",
+            "updatedAt",
+        ]
+        read_only_fields = ["proposal_id", "fehlmenge", "updatedAt"]
+
+
+class OrderProposalStatusUpdateSerializer(serializers.Serializer):
+    """Serializer for updating order proposal status."""
+
+    proposal_id = serializers.IntegerField()
+    status = serializers.ChoiceField(
+        choices=[
+            "NEU",
+            "GEPRÜFT",
+            "FREIGEGEBEN",
+            "VERWORFEN",
+            "BESTELLT",
+            "ABGESCHLOSSEN",
+        ]
+    )
+
+
+class OrderProposalSendSerializer(serializers.Serializer):
+    """Serializer for batch sending order proposals."""
+
+    supplier = serializers.CharField(max_length=100)
+    proposal_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=False,
+    )
