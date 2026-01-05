@@ -657,6 +657,7 @@ class OrderProposalView(APIView):
                             "artikelnummer": serializers.CharField(),
                             "beschreibung": serializers.CharField(),
                             "kanbanGesamt": serializers.IntegerField(),
+                            "kanban_min": serializers.IntegerField(),
                             "anwesend": serializers.IntegerField(),
                             "bereitsGemeldet": serializers.IntegerField(),
                             "fehlmenge": serializers.IntegerField(),
@@ -678,21 +679,28 @@ class OrderProposalView(APIView):
         if status_param:
             qs = qs.filter(status=status_param)
 
-        data = [
-            {
-                "proposal_id": p.id,
-                "lieferant": p.lieferant,
-                "artikelnummer": p.artikelnummer,
-                "beschreibung": p.beschreibung,
-                "kanbanGesamt": p.kanbanGesamt,
-                "anwesend": p.anwesend,
-                "bereitsGemeldet": p.bereitsGemeldet,
-                "fehlmenge": p.fehlmenge,
-                "status": p.status,
-                "updatedAt": p.updated_at,
-            }
-            for p in qs
-        ]
+        data = []
+        for p in qs:
+            # Get kanban_min from Article model
+            article = Article.objects.filter(art_no=p.artikelnummer).first()
+            kanban_min = article.kanban_min if article else 0
+
+            data.append(
+                {
+                    "proposal_id": p.id,
+                    "lieferant": p.lieferant,
+                    "artikelnummer": p.artikelnummer,
+                    "beschreibung": p.beschreibung,
+                    "kanbanGesamt": p.kanbanGesamt,
+                    "kanban_min": kanban_min,
+                    "anwesend": p.anwesend,
+                    "bereitsGemeldet": p.bereitsGemeldet,
+                    "fehlmenge": p.fehlmenge,
+                    "status": p.status,
+                    "updatedAt": p.updated_at,
+                }
+            )
+
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
     @extend_schema(
