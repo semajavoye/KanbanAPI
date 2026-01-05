@@ -634,7 +634,14 @@ class OrderProposalView(APIView):
                 description="Filter by status",
                 required=False,
                 type=str,
-                enum=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"],
+                enum=[
+                    "NEU",
+                    "GEPRÜFT",
+                    "FREIGEGEBEN",
+                    "VERWORFEN",
+                    "GEMELDET",
+                    "ABGESCHLOSSEN",
+                ],
             ),
         ],
         responses={
@@ -697,7 +704,14 @@ class OrderProposalView(APIView):
             fields={
                 "proposal_id": serializers.IntegerField(),
                 "status": serializers.ChoiceField(
-                    choices=["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"]
+                    choices=[
+                        "NEU",
+                        "GEPRÜFT",
+                        "FREIGEGEBEN",
+                        "VERWORFEN",
+                        "GEMELDET",
+                        "ABGESCHLOSSEN",
+                    ]
                 ),
             },
         ),
@@ -740,7 +754,14 @@ class OrderProposalView(APIView):
             )
 
         # Validate status value
-        valid_statuses = ["NEU", "GEPRÜFT", "FREIGEGEBEN", "VERWORFEN", "GEMELDET", "ABGESCHLOSSEN"]
+        valid_statuses = [
+            "NEU",
+            "GEPRÜFT",
+            "FREIGEGEBEN",
+            "VERWORFEN",
+            "GEMELDET",
+            "ABGESCHLOSSEN",
+        ]
         if new_status not in valid_statuses:
             return Response(
                 {"success": False, "error": "Invalid status"},
@@ -872,7 +893,10 @@ class OrderProposalSendView(APIView):
                     p = OrderProposal.objects.get(id=pid)
                     if p.status != OrderProposal.STATUS_FREIGEGEBEN:
                         failed.append(
-                            {"id": pid, "reason": f"Status is {p.status}, not FREIGEGEBEN"}
+                            {
+                                "id": pid,
+                                "reason": f"Status is {p.status}, not FREIGEGEBEN",
+                            }
                         )
                     elif p.lieferant != supplier:
                         failed.append(
@@ -885,4 +909,3 @@ class OrderProposalSendView(APIView):
             {"success": True, "sent": sent, "failed": failed},
             status=status.HTTP_200_OK,
         )
-

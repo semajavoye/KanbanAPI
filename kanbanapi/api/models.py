@@ -23,7 +23,7 @@ class Article(models.Model):
     kanban_min = models.IntegerField(
         "Kanban Zielmenge",
         default=2,
-        help_text="Zielmenge der Kisten, die immer im Lager sein soll"
+        help_text="Zielmenge der Kisten, die immer im Lager sein soll",
     )
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -68,9 +68,7 @@ class OrderProposal(models.Model):
         help_text="Supplier name (e.g., Rubix, OKB)",
         db_index=True,
     )
-    artikelnummer = models.CharField(
-        "Artikelnummer", max_length=50, db_index=True
-    )
+    artikelnummer = models.CharField("Artikelnummer", max_length=50, db_index=True)
     beschreibung = models.TextField("Beschreibung")
     kanbanGesamt = models.IntegerField(
         "Kanban Gesamt", help_text="Total Kanban count", default=0
@@ -104,16 +102,14 @@ class OrderProposal(models.Model):
             self.STATUS_FREIGEGEBEN: [self.STATUS_GEMELDET],
             self.STATUS_VERWORFEN: [self.STATUS_FREIGEGEBEN, self.STATUS_GEPRUEFT],
             self.STATUS_GEMELDET: [],
-            self.STATUS_ABGESCHLOSSEN: []
+            self.STATUS_ABGESCHLOSSEN: [],
         }
         return new_status in allowed_transitions.get(self.status, [])
 
     def update_status(self, new_status):
         """Update status with validation"""
         if not self.can_transition_to(new_status):
-            raise ValueError(
-                f"Invalid transition from {self.status} to {new_status}"
-            )
+            raise ValueError(f"Invalid transition from {self.status} to {new_status}")
         self.status = new_status
         self.save()
         return self
@@ -124,16 +120,16 @@ class OrderProposal(models.Model):
 
 def delete_order_proposals_if_max_reached(article):
     """Delete order proposals when kanban_min is reached with status=1 tags.
-    
+
     Args:
         article: Article instance to check
-        
+
     Returns:
         int: Number of deleted order proposals
     """
     # Count present tags with status=1 (full/present)
     present = Tags.objects.filter(art_no=article, status=1).count()
-    
+
     # If kanban_min is reached or exceeded, delete open order proposals
     if present >= article.kanban_min:
         deleted_count = OrderProposal.objects.filter(
@@ -145,27 +141,27 @@ def delete_order_proposals_if_max_reached(article):
             ],
         ).delete()[0]
         return deleted_count
-    
+
     return 0
 
 
 def generate_order_proposals_for_article(article, force=False):
     """Helper function to generate order proposals for a specific article.
-    
+
     Args:
         article: Article instance to generate proposal for
         force: If True, create proposal even if one already exists
-        
+
     Returns:
         OrderProposal instance if created, None otherwise
     """
     present = Tags.objects.filter(art_no=article, status=1).count()
-    
+
     # If kanban_min is reached, delete existing proposals
     if present >= article.kanban_min:
         delete_order_proposals_if_max_reached(article)
         return None
-    
+
     already_ordered = OrderProposal.objects.filter(
         artikelnummer=article.art_no,
         status__in=[
@@ -174,9 +170,9 @@ def generate_order_proposals_for_article(article, force=False):
             OrderProposal.STATUS_FREIGEGEBEN,
         ],
     ).count()
-    
+
     shortage = article.kanban_min - present - already_ordered
-    
+
     if shortage <= 0:
         return None
 

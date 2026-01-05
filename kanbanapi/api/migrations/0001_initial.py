@@ -5,50 +5,146 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Article',
+            name="Article",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('art_no', models.CharField(db_index=True, max_length=50)),
-                ('art_supplier', models.CharField(choices=[('OKB', 'OKB'), ('SW', 'SW'), ('RKB', 'RKB')], db_index=True, default='OKB', help_text='Das ist der Lieferant des Artikels.', verbose_name='Artikel Lieferant')),
-                ('kanban_min', models.IntegerField(default=2, help_text='Zielmenge der Kisten, die immer im Lager sein soll', verbose_name='Kanban Zielmenge')),
-                ('description', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("art_no", models.CharField(db_index=True, max_length=50)),
+                (
+                    "art_supplier",
+                    models.CharField(
+                        choices=[("OKB", "OKB"), ("SW", "SW"), ("RKB", "RKB")],
+                        db_index=True,
+                        default="OKB",
+                        help_text="Das ist der Lieferant des Artikels.",
+                        verbose_name="Artikel Lieferant",
+                    ),
+                ),
+                (
+                    "kanban_min",
+                    models.IntegerField(
+                        default=2,
+                        help_text="Zielmenge der Kisten, die immer im Lager sein soll",
+                        verbose_name="Kanban Zielmenge",
+                    ),
+                ),
+                ("description", models.TextField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='OrderProposal',
+            name="OrderProposal",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('lieferant', models.CharField(db_index=True, help_text='Supplier name (e.g., Rubix, OKB)', max_length=100, verbose_name='Lieferant')),
-                ('artikelnummer', models.CharField(db_index=True, max_length=50, verbose_name='Artikelnummer')),
-                ('beschreibung', models.TextField(verbose_name='Beschreibung')),
-                ('kanbanGesamt', models.IntegerField(default=0, help_text='Total Kanban count', verbose_name='Kanban Gesamt')),
-                ('anwesend', models.IntegerField(default=0, help_text='Currently present count', verbose_name='Anwesend')),
-                ('bereitsGemeldet', models.IntegerField(default=0, help_text='Already ordered count', verbose_name='Bereits Gemeldet')),
-                ('status', models.CharField(choices=[('NEU', 'Neu'), ('GEPRÜFT', 'Geprüft'), ('FREIGEGEBEN', 'Freigegeben'), ('VERWORFEN', 'Verworfen'), ('GEMELDET', 'Gemeldet')], db_index=True, default='NEU', max_length=20, verbose_name='Status')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "lieferant",
+                    models.CharField(
+                        db_index=True,
+                        help_text="Supplier name (e.g., Rubix, OKB)",
+                        max_length=100,
+                        verbose_name="Lieferant",
+                    ),
+                ),
+                (
+                    "artikelnummer",
+                    models.CharField(
+                        db_index=True, max_length=50, verbose_name="Artikelnummer"
+                    ),
+                ),
+                ("beschreibung", models.TextField(verbose_name="Beschreibung")),
+                (
+                    "kanbanGesamt",
+                    models.IntegerField(
+                        default=0,
+                        help_text="Total Kanban count",
+                        verbose_name="Kanban Gesamt",
+                    ),
+                ),
+                (
+                    "anwesend",
+                    models.IntegerField(
+                        default=0,
+                        help_text="Currently present count",
+                        verbose_name="Anwesend",
+                    ),
+                ),
+                (
+                    "bereitsGemeldet",
+                    models.IntegerField(
+                        default=0,
+                        help_text="Already ordered count",
+                        verbose_name="Bereits Gemeldet",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("NEU", "Neu"),
+                            ("GEPRÜFT", "Geprüft"),
+                            ("FREIGEGEBEN", "Freigegeben"),
+                            ("VERWORFEN", "Verworfen"),
+                            ("GEMELDET", "Gemeldet"),
+                        ],
+                        db_index=True,
+                        default="NEU",
+                        max_length=20,
+                        verbose_name="Status",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'ordering': ['-updated_at'],
+                "ordering": ["-updated_at"],
             },
         ),
         migrations.CreateModel(
-            name='Tags',
+            name="Tags",
             fields=[
-                ('tag_id', models.CharField(db_index=True, max_length=24, primary_key=True, serialize=False)),
-                ('status', models.IntegerField(default=0, help_text='Der Status der Kanban Box (0=leer, 1=voll).', verbose_name='Status')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('art_no', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.article')),
+                (
+                    "tag_id",
+                    models.CharField(
+                        db_index=True, max_length=24, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "status",
+                    models.IntegerField(
+                        default=0,
+                        help_text="Der Status der Kanban Box (0=leer, 1=voll).",
+                        verbose_name="Status",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "art_no",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="api.article"
+                    ),
+                ),
             ],
         ),
     ]
