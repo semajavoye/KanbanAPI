@@ -83,7 +83,7 @@ class Command(BaseCommand):
             ).count()
 
             # Calculate shortage
-            shortage = article.kanban_min - present - already_ordered
+            shortage = max(0, article.kanban_min - present - already_ordered)
 
             if shortage > 0:
                 # Check if proposal already exists

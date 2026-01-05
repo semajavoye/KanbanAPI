@@ -200,7 +200,7 @@ def generate_order_proposals_for_article(article, force=False):
         ],
     ).count()
 
-    shortage = article.kanban_min - present - already_ordered
+    shortage = max(0, article.kanban_min - present - already_ordered)
 
     if shortage <= 0:
         return None
