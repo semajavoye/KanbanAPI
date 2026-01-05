@@ -6,7 +6,7 @@ It also deletes proposals when kanban_min is reached with status=1 tags.
 """
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count, Q
+from django.db.models import Count
 from api.models import (
     Article,
     Tags,
