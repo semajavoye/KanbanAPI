@@ -125,7 +125,7 @@ class Command(BaseCommand):
                 else:
                     # Count total tags for this article
                     total_tags = Tags.objects.filter(art_no=article).count()
-                    
+
                     proposal = OrderProposal.objects.create(
                         lieferant=article.art_supplier,
                         artikelnummer=article.art_no,
