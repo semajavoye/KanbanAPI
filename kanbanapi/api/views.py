@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Q
 
-from api.models import Article, Tags
+from api.models import Article, Tags, OrderProposal
 
 import secrets
 import string
@@ -57,6 +57,7 @@ class ArticlesView(APIView):
                             "art_supplier": serializers.ChoiceField(
                                 choices=["OKB", "RKB", "SW"]
                             ),
+                            "kanban_min": serializers.IntegerField(),
                             "description": serializers.CharField(),
                         },
                         many=True,
@@ -85,6 +86,7 @@ class ArticlesView(APIView):
             {
                 "art_no": a.art_no,
                 "art_supplier": a.art_supplier,
+                "kanban_min": a.kanban_min,
                 "description": a.description,
             }
             for a in qs
@@ -614,5 +616,297 @@ class TagsView(APIView):
 
         return Response(
             {"success": True, "message": f"{deleted_count} tag(s) deleted"},
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrderProposalView(APIView):
+    """Resource-stable /api/order-proposals/ endpoint.
+    GET: list all order proposals with optional status filter
+    PATCH: update proposal status
+    """
+
+    @extend_schema(
+        summary="Liste aller Bestellvorschläge",
+        parameters=[
+            OpenApiParameter(
+                name="status",
+                description="Filter by status",
+                required=False,
+                type=str,
+                enum=[
+                    "NEU",
+                    "GEPRÜFT",
+                    "FREIGEGEBEN",
+                    "VERWORFEN",
+                    "BESTELLT",
+                    "ABGESCHLOSSEN",
+                ],
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="OrderProposalListResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "data": inline_serializer(
+                        name="OrderProposalData",
+                        fields={
+                            "proposal_id": serializers.IntegerField(),
+                            "lieferant": serializers.CharField(),
+                            "artikelnummer": serializers.CharField(),
+                            "beschreibung": serializers.CharField(),
+                            "kanbanGesamt": serializers.IntegerField(),
+                            "kanban_min": serializers.IntegerField(),
+                            "anwesend": serializers.IntegerField(),
+                            "bereitsBestellt": serializers.IntegerField(),
+                            "fehlmenge": serializers.IntegerField(),
+                            "status": serializers.CharField(),
+                            "updatedAt": serializers.DateTimeField(),
+                        },
+                        many=True,
+                    ),
+                },
+            )
+        },
+        tags=["OrderProposals"],
+    )
+    def get(self, request):
+        """List all order proposals with optional status filter"""
+        qs = OrderProposal.objects.select_related("article").all()
+
+        status_param = request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
+
+        data = []
+        for p in qs:
+            data.append(
+                {
+                    "proposal_id": p.id,
+                    "lieferant": p.lieferant,
+                    "artikelnummer": p.artikelnummer,
+                    "beschreibung": p.beschreibung,
+                    "kanbanGesamt": p.kanbanGesamt,
+                    "kanban_min": p.kanban_min,
+                    "anwesend": p.anwesend,
+                    "bereitsBestellt": p.bereitsBestellt,
+                    "fehlmenge": p.fehlmenge,
+                    "status": p.status,
+                    "updatedAt": p.updated_at,
+                }
+            )
+
+        return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Bestellvorschlag Status aktualisieren",
+        request=inline_serializer(
+            name="OrderProposalUpdateRequest",
+            fields={
+                "proposal_id": serializers.IntegerField(),
+                "status": serializers.ChoiceField(
+                    choices=[
+                        "NEU",
+                        "GEPRÜFT",
+                        "FREIGEGEBEN",
+                        "VERWORFEN",
+                        "BESTELLT",
+                        "ABGESCHLOSSEN",
+                    ]
+                ),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="OrderProposalUpdateResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "proposal_id": serializers.IntegerField(),
+                    "status": serializers.CharField(),
+                },
+            ),
+            400: inline_serializer(
+                name="OrderProposalErrorResponse400",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
+                },
+            ),
+            404: inline_serializer(
+                name="OrderProposalErrorResponse404",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
+                },
+            ),
+        },
+        tags=["OrderProposals"],
+    )
+    def patch(self, request):
+        """Update proposal status with validation for allowed transitions"""
+        body = request.data or {}
+        proposal_id = body.get("proposal_id")
+        new_status = body.get("status")
+
+        if not proposal_id or not new_status:
+            return Response(
+                {"success": False, "error": "proposal_id and status are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate status value
+        valid_statuses = [
+            "NEU",
+            "GEPRÜFT",
+            "FREIGEGEBEN",
+            "VERWORFEN",
+            "BESTELLT",
+            "ABGESCHLOSSEN",
+        ]
+        if new_status not in valid_statuses:
+            return Response(
+                {"success": False, "error": "Invalid status"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Find proposal
+        try:
+            proposal = OrderProposal.objects.get(id=proposal_id)
+        except OrderProposal.DoesNotExist:
+            return Response(
+                {"success": False, "error": "Proposal not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validate and update status using model method
+        if not proposal.can_transition_to(new_status):
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Invalid transition from {proposal.status} to {new_status}",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update status
+        try:
+            proposal.update_status(new_status)
+        except ValueError as e:
+            return Response(
+                {"success": False, "error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"success": True, "proposal_id": proposal.id, "status": proposal.status},
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrderProposalSendView(APIView):
+    """Send order proposals endpoint: POST /api/order-proposals/send/"""
+
+    @extend_schema(
+        summary="Bestellvorschläge senden (Sammelaktion)",
+        request=inline_serializer(
+            name="OrderProposalSendRequest",
+            fields={
+                "supplier": serializers.CharField(),
+                "proposal_ids": serializers.ListField(child=serializers.IntegerField()),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="OrderProposalSendResponse",
+                fields={
+                    "success": serializers.BooleanField(default=True),
+                    "sent": serializers.ListField(child=serializers.IntegerField()),
+                    "failed": serializers.ListField(
+                        child=inline_serializer(
+                            name="FailedProposal",
+                            fields={
+                                "id": serializers.IntegerField(),
+                                "reason": serializers.CharField(),
+                            },
+                        )
+                    ),
+                },
+            ),
+            400: inline_serializer(
+                name="OrderProposalSendErrorResponse400",
+                fields={
+                    "success": serializers.BooleanField(default=False),
+                    "error": serializers.CharField(),
+                },
+            ),
+        },
+        tags=["OrderProposals"],
+    )
+    def post(self, request):
+        """Send order proposals for a specific supplier (batch action)
+
+        Takes proposals with status GEPRÜFT and sets them to FREIGEGEBEN.
+        This follows the workflow: NEU → GEPRÜFT → FREIGEGEBEN
+        """
+        body = request.data or {}
+        supplier = body.get("supplier")
+        proposal_ids = body.get("proposal_ids", [])
+
+        if not supplier:
+            return Response(
+                {"success": False, "error": "supplier is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not proposal_ids or not isinstance(proposal_ids, list):
+            return Response(
+                {"success": False, "error": "proposal_ids must be a non-empty list"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Fetch proposals with status GEPRÜFT
+        proposals = OrderProposal.objects.filter(
+            id__in=proposal_ids,
+            status=OrderProposal.STATUS_GEPRUEFT,
+            lieferant=supplier,
+        )
+
+        sent = []
+        failed = []
+
+        for proposal in proposals:
+            try:
+                # Update status to FREIGEGEBEN
+                proposal.status = OrderProposal.STATUS_FREIGEGEBEN
+                proposal.save()
+                sent.append(proposal.id)
+            except Exception as e:
+                # Keep status as GEPRUEFT on failure
+                failed.append({"id": proposal.id, "reason": str(e)})
+
+        # Check for proposals that were not found or had wrong status
+        found_ids = {p.id for p in proposals}
+        for pid in proposal_ids:
+            if pid not in found_ids:
+                # Check if it exists but wrong status/supplier
+                try:
+                    p = OrderProposal.objects.get(id=pid)
+                    if p.status != OrderProposal.STATUS_GEPRUEFT:
+                        failed.append(
+                            {
+                                "id": pid,
+                                "reason": f"Status is {p.status}, not GEPRÜFT",
+                            }
+                        )
+                    elif p.lieferant != supplier:
+                        failed.append(
+                            {"id": pid, "reason": f"Supplier mismatch: {p.lieferant}"}
+                        )
+                except OrderProposal.DoesNotExist:
+                    failed.append({"id": pid, "reason": "Proposal not found"})
+
+        return Response(
+            {"success": True, "sent": sent, "failed": failed},
             status=status.HTTP_200_OK,
         )

@@ -96,11 +96,7 @@ DATABASES = {
         "USER": os.environ.get("POSTGRES_DB_USER"),
         "PASSWORD": os.environ.get("POSTGRES_DB_PASSWORD"),
         "HOST": os.environ.get("POSTGRES_DB_HOST"),
-    },
-    # "default": {
-    #     "ENGINE": "django.db.backends.sqlite3",
-    #     "NAME": BASE_DIR / "db.sqlite3",
-    # },
+    }
 }
 
 
@@ -126,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "de-de"
 
 TIME_ZONE = "UTC"
 
