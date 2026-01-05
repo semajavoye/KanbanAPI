@@ -639,7 +639,7 @@ class OrderProposalView(APIView):
                     "GEPRÜFT",
                     "FREIGEGEBEN",
                     "VERWORFEN",
-                    "GEMELDET",
+                    "BESTELLT",
                     "ABGESCHLOSSEN",
                 ],
             ),
@@ -659,7 +659,7 @@ class OrderProposalView(APIView):
                             "kanbanGesamt": serializers.IntegerField(),
                             "kanban_min": serializers.IntegerField(),
                             "anwesend": serializers.IntegerField(),
-                            "bereitsGemeldet": serializers.IntegerField(),
+                            "bereitsBestellt": serializers.IntegerField(),
                             "fehlmenge": serializers.IntegerField(),
                             "status": serializers.CharField(),
                             "updatedAt": serializers.DateTimeField(),
@@ -673,7 +673,7 @@ class OrderProposalView(APIView):
     )
     def get(self, request):
         """List all order proposals with optional status filter"""
-        qs = OrderProposal.objects.all()
+        qs = OrderProposal.objects.select_related("article").all()
 
         status_param = request.query_params.get("status")
         if status_param:
@@ -681,10 +681,6 @@ class OrderProposalView(APIView):
 
         data = []
         for p in qs:
-            # Get kanban_min from Article model
-            article = Article.objects.filter(art_no=p.artikelnummer).first()
-            kanban_min = article.kanban_min if article else 0
-
             data.append(
                 {
                     "proposal_id": p.id,
@@ -692,9 +688,9 @@ class OrderProposalView(APIView):
                     "artikelnummer": p.artikelnummer,
                     "beschreibung": p.beschreibung,
                     "kanbanGesamt": p.kanbanGesamt,
-                    "kanban_min": kanban_min,
+                    "kanban_min": p.kanban_min,
                     "anwesend": p.anwesend,
-                    "bereitsGemeldet": p.bereitsGemeldet,
+                    "bereitsBestellt": p.bereitsBestellt,
                     "fehlmenge": p.fehlmenge,
                     "status": p.status,
                     "updatedAt": p.updated_at,
@@ -715,7 +711,7 @@ class OrderProposalView(APIView):
                         "GEPRÜFT",
                         "FREIGEGEBEN",
                         "VERWORFEN",
-                        "GEMELDET",
+                        "BESTELLT",
                         "ABGESCHLOSSEN",
                     ]
                 ),
@@ -765,7 +761,7 @@ class OrderProposalView(APIView):
             "GEPRÜFT",
             "FREIGEGEBEN",
             "VERWORFEN",
-            "GEMELDET",
+            "BESTELLT",
             "ABGESCHLOSSEN",
         ]
         if new_status not in valid_statuses:
@@ -848,7 +844,11 @@ class OrderProposalSendView(APIView):
         tags=["OrderProposals"],
     )
     def post(self, request):
-        """Send order proposals for a specific supplier (batch action)"""
+        """Send order proposals for a specific supplier (batch action)
+
+        Takes proposals with status GEPRÜFT and sets them to FREIGEGEBEN.
+        This follows the workflow: NEU → GEPRÜFT → FREIGEGEBEN
+        """
         body = request.data or {}
         supplier = body.get("supplier")
         proposal_ids = body.get("proposal_ids", [])
@@ -865,10 +865,10 @@ class OrderProposalSendView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Fetch proposals with status FREIGEGEBEN
+        # Fetch proposals with status GEPRÜFT
         proposals = OrderProposal.objects.filter(
             id__in=proposal_ids,
-            status=OrderProposal.STATUS_FREIGEGEBEN,
+            status=OrderProposal.STATUS_GEPRUEFT,
             lieferant=supplier,
         )
 
@@ -877,17 +877,12 @@ class OrderProposalSendView(APIView):
 
         for proposal in proposals:
             try:
-                # TODO: Implement actual CSV generation and sending logic here
-                # For now, we'll simulate success
-                # Example: generate_csv_and_send(proposal)
-
-                # Update status to GEMELDET
-                proposal.status = OrderProposal.STATUS_GEMELDET
+                # Update status to FREIGEGEBEN
+                proposal.status = OrderProposal.STATUS_FREIGEGEBEN
                 proposal.save()
                 sent.append(proposal.id)
-
             except Exception as e:
-                # Keep status as FREIGEGEBEN on failure
+                # Keep status as GEPRUEFT on failure
                 failed.append({"id": proposal.id, "reason": str(e)})
 
         # Check for proposals that were not found or had wrong status
@@ -897,11 +892,11 @@ class OrderProposalSendView(APIView):
                 # Check if it exists but wrong status/supplier
                 try:
                     p = OrderProposal.objects.get(id=pid)
-                    if p.status != OrderProposal.STATUS_FREIGEGEBEN:
+                    if p.status != OrderProposal.STATUS_GEPRUEFT:
                         failed.append(
                             {
                                 "id": pid,
-                                "reason": f"Status is {p.status}, not FREIGEGEBEN",
+                                "reason": f"Status is {p.status}, not GEPRÜFT",
                             }
                         )
                     elif p.lieferant != supplier:

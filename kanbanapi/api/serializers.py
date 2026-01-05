@@ -84,7 +84,7 @@ class OrderProposalSerializer(serializers.ModelSerializer):
             "beschreibung",
             "kanbanGesamt",
             "anwesend",
-            "bereitsGemeldet",
+            "bereitsBestellt",
             "fehlmenge",
             "status",
             "updatedAt",
@@ -102,7 +102,7 @@ class OrderProposalStatusUpdateSerializer(serializers.Serializer):
             "GEPRÜFT",
             "FREIGEGEBEN",
             "VERWORFEN",
-            "GEMELDET",
+            "BESTELLT",
             "ABGESCHLOSSEN",
         ]
     )

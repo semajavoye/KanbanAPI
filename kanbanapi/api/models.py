@@ -50,7 +50,7 @@ class OrderProposal(models.Model):
     STATUS_GEPRUEFT = "GEPRÜFT"
     STATUS_FREIGEGEBEN = "FREIGEGEBEN"
     STATUS_VERWORFEN = "VERWORFEN"
-    STATUS_GEMELDET = "GEMELDET"
+    STATUS_BESTELLT = "BESTELLT"
     STATUS_ABGESCHLOSSEN = "ABGESCHLOSSEN"
 
     STATUS_CHOICES = [
@@ -58,26 +58,22 @@ class OrderProposal(models.Model):
         (STATUS_GEPRUEFT, "Geprüft"),
         (STATUS_FREIGEGEBEN, "Freigegeben"),
         (STATUS_VERWORFEN, "Verworfen"),
-        (STATUS_GEMELDET, "Gemeldet"),
+        (STATUS_BESTELLT, "Bestellt"),
         (STATUS_ABGESCHLOSSEN, "Abgeschlossen"),
     ]
 
-    lieferant = models.CharField(
-        "Lieferant",
-        max_length=100,
-        help_text="Supplier name (e.g., Rubix, OKB)",
+    article = models.ForeignKey(
+        Article,
+        on_delete=models.CASCADE,
         db_index=True,
-    )
-    artikelnummer = models.CharField("Artikelnummer", max_length=50, db_index=True)
-    beschreibung = models.TextField("Beschreibung")
-    kanbanGesamt = models.IntegerField(
-        "Kanban Gesamt", help_text="Total Kanban count", default=0
+        related_name="order_proposals",
+        help_text="Referenz zum Artikel",
     )
     anwesend = models.IntegerField(
         "Anwesend", help_text="Currently present count", default=0
     )
-    bereitsGemeldet = models.IntegerField(
-        "Bereits Gemeldet", help_text="Already ordered count", default=0
+    bereitsBestellt = models.IntegerField(
+        "Bereits Bestellt", help_text="Already ordered count", default=0
     )
     status = models.CharField(
         "Status",
@@ -91,17 +87,42 @@ class OrderProposal(models.Model):
 
     @property
     def fehlmenge(self):
-        """Calculate shortage: total - present - already ordered"""
-        return max(0, self.kanbanGesamt - self.anwesend - self.bereitsGemeldet)
+        """Calculate shortage: kanban_min - present - already ordered"""
+        return max(0, self.article.kanban_min - self.anwesend - self.bereitsBestellt)
+
+    @property
+    def lieferant(self):
+        """Get supplier from linked article"""
+        return self.article.art_supplier
+
+    @property
+    def artikelnummer(self):
+        """Get article number from linked article"""
+        return self.article.art_no
+
+    @property
+    def beschreibung(self):
+        """Get description from linked article"""
+        return self.article.description
+
+    @property
+    def kanbanGesamt(self):
+        """Get total tag count from linked article"""
+        return Tags.objects.filter(art_no=self.article).count()
+
+    @property
+    def kanban_min(self):
+        """Get kanban_min from linked article"""
+        return self.article.kanban_min
 
     def can_transition_to(self, new_status):
         """Check if status transition is allowed"""
         allowed_transitions = {
             self.STATUS_NEU: [self.STATUS_GEPRUEFT],
             self.STATUS_GEPRUEFT: [self.STATUS_FREIGEGEBEN, self.STATUS_VERWORFEN],
-            self.STATUS_FREIGEGEBEN: [self.STATUS_GEMELDET],
-            self.STATUS_VERWORFEN: [self.STATUS_FREIGEGEBEN, self.STATUS_GEPRUEFT],
-            self.STATUS_GEMELDET: [self.STATUS_ABGESCHLOSSEN],
+            self.STATUS_FREIGEGEBEN: [self.STATUS_BESTELLT],
+            self.STATUS_VERWORFEN: [self.STATUS_GEPRUEFT],
+            self.STATUS_BESTELLT: [self.STATUS_ABGESCHLOSSEN],
             self.STATUS_ABGESCHLOSSEN: [],
         }
         return new_status in allowed_transitions.get(self.status, [])
@@ -133,7 +154,7 @@ def delete_order_proposals_if_max_reached(article):
     # If kanban_min is reached or exceeded, delete open order proposals
     if present >= article.kanban_min:
         deleted_count = OrderProposal.objects.filter(
-            artikelnummer=article.art_no,
+            article=article,
             status__in=[
                 OrderProposal.STATUS_NEU,
                 OrderProposal.STATUS_GEPRUEFT,
@@ -163,7 +184,7 @@ def generate_order_proposals_for_article(article, force=False):
         return None
 
     already_ordered = OrderProposal.objects.filter(
-        artikelnummer=article.art_no,
+        article=article,
         status__in=[
             OrderProposal.STATUS_NEU,
             OrderProposal.STATUS_GEPRUEFT,
@@ -178,7 +199,7 @@ def generate_order_proposals_for_article(article, force=False):
 
     # Check if proposal already exists
     existing = OrderProposal.objects.filter(
-        artikelnummer=article.art_no,
+        article=article,
         status__in=[
             OrderProposal.STATUS_NEU,
             OrderProposal.STATUS_GEPRUEFT,
@@ -189,16 +210,10 @@ def generate_order_proposals_for_article(article, force=False):
     if existing and not force:
         return None
 
-    # Count total tags for this article
-    total_tags = Tags.objects.filter(art_no=article).count()
-
     # Create new proposal
     return OrderProposal.objects.create(
-        lieferant=article.art_supplier,
-        artikelnummer=article.art_no,
-        beschreibung=article.description,
-        kanbanGesamt=total_tags,
+        article=article,
         anwesend=present,
-        bereitsGemeldet=0,
+        bereitsBestellt=0,
         status=OrderProposal.STATUS_NEU,
     )

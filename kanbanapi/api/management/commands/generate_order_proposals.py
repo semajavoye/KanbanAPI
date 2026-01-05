@@ -50,7 +50,7 @@ class Command(BaseCommand):
             if present >= article.kanban_min:
                 if dry_run:
                     existing_to_delete = OrderProposal.objects.filter(
-                        artikelnummer=article.art_no,
+                        article=article,
                         status__in=[
                             OrderProposal.STATUS_NEU,
                             OrderProposal.STATUS_GEPRUEFT,
@@ -77,14 +77,12 @@ class Command(BaseCommand):
                         deleted_count += count
                 continue
 
-            # Count already ordered (sum of bereitsGemeldet for NEU/GEPRÜFT/FREIGEGEBEN proposals)
+            # Count already ordered (sum of bereitsBestellt for BESTELLT proposals)
             already_ordered = (
                 OrderProposal.objects.filter(
-                    artikelnummer=article.art_no,
+                    article=article,
                     status__in=[
-                        OrderProposal.STATUS_NEU,
-                        OrderProposal.STATUS_GEPRUEFT,
-                        OrderProposal.STATUS_FREIGEGEBEN,
+                        OrderProposal.STATUS_BESTELLT,
                     ],
                 )
                 .aggregate(total=Count("id"))
@@ -97,7 +95,7 @@ class Command(BaseCommand):
             if shortage > 0:
                 # Check if proposal already exists
                 existing = OrderProposal.objects.filter(
-                    artikelnummer=article.art_no,
+                    article=article,
                     status__in=[
                         OrderProposal.STATUS_NEU,
                         OrderProposal.STATUS_GEPRUEFT,
@@ -123,16 +121,10 @@ class Command(BaseCommand):
                     )
                     created_count += 1
                 else:
-                    # Count total tags for this article
-                    total_tags = Tags.objects.filter(art_no=article).count()
-
                     proposal = OrderProposal.objects.create(
-                        lieferant=article.art_supplier,
-                        artikelnummer=article.art_no,
-                        beschreibung=article.description,
-                        kanbanGesamt=total_tags,
+                        article=article,
                         anwesend=present,
-                        bereitsGemeldet=0,  # New proposal, nothing sent yet
+                        bereitsBestellt=0,  # New proposal, nothing sent yet
                         status=OrderProposal.STATUS_NEU,
                     )
                     self.stdout.write(
