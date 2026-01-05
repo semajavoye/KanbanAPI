@@ -22,7 +22,7 @@ class Article(models.Model):
     )
     kanban_min = models.IntegerField(
         "Kanban Zielmenge",
-        default=2,
+        default=0,
         help_text="Zielmenge der Kisten, die immer im Lager sein soll",
     )
     description = models.TextField()
