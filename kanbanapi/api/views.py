@@ -677,8 +677,6 @@ class OrderProposalView(APIView):
         status_param = request.query_params.get("status")
         if status_param:
             qs = qs.filter(status=status_param)
-        else:
-            qs = qs.exclude(status=OrderProposal.STATUS_ABGESCHLOSSEN)
 
         data = [
             {

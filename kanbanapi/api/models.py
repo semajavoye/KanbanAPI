@@ -101,7 +101,7 @@ class OrderProposal(models.Model):
             self.STATUS_GEPRUEFT: [self.STATUS_FREIGEGEBEN, self.STATUS_VERWORFEN],
             self.STATUS_FREIGEGEBEN: [self.STATUS_GEMELDET],
             self.STATUS_VERWORFEN: [self.STATUS_FREIGEGEBEN, self.STATUS_GEPRUEFT],
-            self.STATUS_GEMELDET: [],
+            self.STATUS_GEMELDET: [self.STATUS_ABGESCHLOSSEN],
             self.STATUS_ABGESCHLOSSEN: [],
         }
         return new_status in allowed_transitions.get(self.status, [])
@@ -189,12 +189,15 @@ def generate_order_proposals_for_article(article, force=False):
     if existing and not force:
         return None
 
+    # Count total tags for this article
+    total_tags = Tags.objects.filter(art_no=article).count()
+
     # Create new proposal
     return OrderProposal.objects.create(
         lieferant=article.art_supplier,
         artikelnummer=article.art_no,
         beschreibung=article.description,
-        kanbanGesamt=article.kanban_min,
+        kanbanGesamt=total_tags,
         anwesend=present,
         bereitsGemeldet=0,
         status=OrderProposal.STATUS_NEU,

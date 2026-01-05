@@ -123,11 +123,14 @@ class Command(BaseCommand):
                     )
                     created_count += 1
                 else:
+                    # Count total tags for this article
+                    total_tags = Tags.objects.filter(art_no=article).count()
+                    
                     proposal = OrderProposal.objects.create(
                         lieferant=article.art_supplier,
                         artikelnummer=article.art_no,
                         beschreibung=article.description,
-                        kanbanGesamt=article.kanban_min,
+                        kanbanGesamt=total_tags,
                         anwesend=present,
                         bereitsGemeldet=0,  # New proposal, nothing sent yet
                         status=OrderProposal.STATUS_NEU,
