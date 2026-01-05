@@ -77,17 +77,11 @@ class Command(BaseCommand):
                         deleted_count += count
                 continue
 
-            # Count already ordered (sum of bereitsBestellt for BESTELLT proposals)
-            already_ordered = (
-                OrderProposal.objects.filter(
-                    article=article,
-                    status__in=[
-                        OrderProposal.STATUS_BESTELLT,
-                    ],
-                )
-                .aggregate(total=Count("id"))
-                .get("total", 0)
-            )
+            # Count already ordered (BESTELLT proposals)
+            already_ordered = OrderProposal.objects.filter(
+                article=article,
+                status=OrderProposal.STATUS_BESTELLT,
+            ).count()
 
             # Calculate shortage
             shortage = article.kanban_min - present - already_ordered
@@ -124,7 +118,6 @@ class Command(BaseCommand):
                     proposal = OrderProposal.objects.create(
                         article=article,
                         anwesend=present,
-                        bereitsBestellt=0,  # New proposal, nothing sent yet
                         status=OrderProposal.STATUS_NEU,
                     )
                     self.stdout.write(

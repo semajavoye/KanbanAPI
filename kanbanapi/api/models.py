@@ -72,9 +72,6 @@ class OrderProposal(models.Model):
     anwesend = models.IntegerField(
         "Anwesend", help_text="Currently present count", default=0
     )
-    bereitsBestellt = models.IntegerField(
-        "Bereits Bestellt", help_text="Already ordered count", default=0
-    )
     status = models.CharField(
         "Status",
         max_length=20,
@@ -84,6 +81,17 @@ class OrderProposal(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def bereitsBestellt(self):
+        """Calculate total already ordered count from BESTELLT proposals for this article.
+
+        Returns:
+            int: Sum of all OrderProposals with status BESTELLT for the same article
+        """
+        return OrderProposal.objects.filter(
+            article=self.article, status=self.STATUS_BESTELLT
+        ).count()
 
     @property
     def fehlmenge(self):
@@ -214,6 +222,5 @@ def generate_order_proposals_for_article(article, force=False):
     return OrderProposal.objects.create(
         article=article,
         anwesend=present,
-        bereitsBestellt=0,
         status=OrderProposal.STATUS_NEU,
     )

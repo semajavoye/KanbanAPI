@@ -89,7 +89,7 @@ class OrderProposalSerializer(serializers.ModelSerializer):
             "status",
             "updatedAt",
         ]
-        read_only_fields = ["proposal_id", "fehlmenge", "updatedAt"]
+        read_only_fields = ["proposal_id", "bereitsBestellt", "fehlmenge", "updatedAt"]
 
 
 class OrderProposalStatusUpdateSerializer(serializers.Serializer):
