@@ -197,6 +197,7 @@ def generate_order_proposals_for_article(article, force=False):
             OrderProposal.STATUS_NEU,
             OrderProposal.STATUS_GEPRUEFT,
             OrderProposal.STATUS_FREIGEGEBEN,
+            OrderProposal.STATUS_BESTELLT,
         ],
     ).count()
 
