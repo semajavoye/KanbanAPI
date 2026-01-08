@@ -55,9 +55,8 @@ deploy-prod:
       when: on_success
     - when: never
   script:
-    - envsubst < deployment/deployment.yaml > deployment.yaml
-    - kubectl apply -f deployment.yaml
-    - kubectl apply -f deployment/prod/ingress.yaml
+    - envsubst < deployment/values.template.yaml > deployment/values.yaml
+    - helm upgrade --install kanbanapi deployment/
     - kubectl rollout restart deployment django
   needs:
     - build-prod
