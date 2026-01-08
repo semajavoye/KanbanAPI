@@ -3,6 +3,7 @@ services:
 
 stages:
   - test
+  - prod
 
 build-test:
   image: docker:dind
