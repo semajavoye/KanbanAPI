@@ -6,8 +6,6 @@ application:
   env: |-
     - name: ALLOWED_HOST
       value: $ALLOWED_HOST
-    - name: DB_PASSWORD
-      value: $DB_PASSWORD
     - name: KUBERNETES_NAMESPACE_OVERWRITE
       value: $KUBERNETES_NAMESPACE_OVERWRITE
     - name: NAV64BIT_PASSWORD
