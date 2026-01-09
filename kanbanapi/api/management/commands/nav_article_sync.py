@@ -70,7 +70,7 @@ class Command(BaseCommand):
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT [No_], [Description], [X-KanBan-Menge]
+                SELECT [No_], [Description]
                 FROM [dbo].[OTEC$Item] 
                 WHERE [No_] NOT LIKE ''
                 AND [No_] NOT LIKE '%#%'
@@ -90,7 +90,7 @@ class Command(BaseCommand):
                 existing_articles = {art.art_no: art for art in Article.objects.all()}
 
                 t = self.tqdm(total=len(rows))
-                for no, desc, kanban_min in rows:
+                for no, desc in rows:
                     desc = desc or ""
 
                     if no in existing_articles:
@@ -101,7 +101,6 @@ class Command(BaseCommand):
                         articles_to_create.append(
                             Article(
                                 art_no=no,
-                                kanban_min=kanban_min or 0,
                                 description=desc,
                             )
                         )

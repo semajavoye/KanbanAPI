@@ -21,10 +21,5 @@ urlpatterns = [
     # Resource-stable endpoints
     path("articles/", views.ArticlesView.as_view(), name="articles"),
     path("tags/", views.TagsView.as_view(), name="tags"),
-    path("order-proposals/", views.OrderProposalView.as_view(), name="order-proposals"),
-    path(
-        "order-proposals/send/",
-        views.OrderProposalSendView.as_view(),
-        name="order-proposals-send",
-    ),
+    path("orders/", views.OrderView.as_view(), name="orders"),
 ]
