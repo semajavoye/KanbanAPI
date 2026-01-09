@@ -127,6 +127,7 @@ spec:
           containers:
             - name: sync-articles-and-descriptions
               image: gitlab-registry.otec.de:5050/k8s/tier-2/kanbanapi/kanbanapi:{{ .Values.application.version }}
+              imagePullPolicy: Always
               command: ["python"]
               args: ["manage.py", "nav_article_sync"]
               env: {{ .Values.application.env | nindent 16 }}
