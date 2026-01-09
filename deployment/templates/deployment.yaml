@@ -110,6 +110,7 @@ spec:
         - name: staticfiles
           persistentVolumeClaim:
             claimName: staticfiles
+{{- if eq .Values.application.environment "prod" }}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -118,7 +119,7 @@ metadata:
   labels:
     app: sync-articles-and-descriptions
 spec:
-  schedule: "00 20 * * *" # Every day at 20:00
+  schedule: "0 20 * * *"
   jobTemplate:
     spec:
       template:
@@ -132,6 +133,7 @@ spec:
           restartPolicy: OnFailure
           imagePullSecrets:
             - name: gitlab-registry
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
