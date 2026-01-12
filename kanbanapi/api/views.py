@@ -199,11 +199,22 @@ def generate_unique_tag_id():
 
 
 def generate_unique_order_no():
-    alphabet = string.digits
-    while True:
-        candidate = "".join(secrets.choice(alphabet) for _ in range(8))
-        if not Orders.objects.filter(order_no=candidate).exists():
-            return candidate
+    """Generate an ascending 8-digit order number."""
+    # Get the highest existing order number
+    last_order = Orders.objects.all().order_by("-order_no").first()
+
+    if last_order and last_order.order_no.isdigit():
+        next_number = int(last_order.order_no) + 1
+    else:
+        # Start from 10000000 (8 digits)
+        next_number = 1000000000
+
+    # Ensure it's 8 digits and doesn't overflow
+    if next_number > 9999999999:
+        # Wrap around or raise error
+        next_number = 0
+
+    return str(next_number).zfill(10)
 
 
 class TagsView(APIView):
@@ -657,14 +668,21 @@ class OrderView(APIView):
     def get(self, request):
         qs = Orders.objects.all().only("order_no", "art_no", "status", "timestamp")
 
+        status_param = request.query_params.get("status")
+        if status_param is not None:
+            try:
+                qs = qs.filter(status=int(status_param))
+            except ValueError:
+                pass
+
         data = [
             {
-                "order_no": a.order_no,
-                "art_no": a.art_no,
-                "status": a.status,
-                "timestamp": a.timestamp,
+                "order_no": o.order_no,
+                "art_no": o.art_no,
+                "status": o.status,
+                "timestamp": o.timestamp,
             }
-            for a in qs
+            for o in qs
         ]
         return Response({"success": True, "data": data}, status=status.HTTP_200_OK)
 
@@ -754,11 +772,21 @@ class OrderView(APIView):
                 )
 
             # Erstelle Orders für alle art_no
+            from django.utils import timezone
+            from datetime import timedelta
+
             created_orders = []
-            for article_number in art_no:
-                order = Orders.objects.create(
-                    art_no=article_number, status=order_status
+            base_time = timezone.now()
+
+            for idx, article_number in enumerate(art_no):
+                # Füge Mikrosekunden hinzu für unterschiedliche Timestamps
+                order_time = base_time + timedelta(microseconds=idx * 1000)
+
+                order = Orders(
+                    art_no=article_number, status=order_status, timestamp=order_time
                 )
+                order.save()
+
                 created_orders.append(
                     {
                         "order_no": order.order_no,

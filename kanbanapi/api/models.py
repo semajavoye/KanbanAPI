@@ -42,7 +42,7 @@ class Orders(models.Model):
     """Orders model for orders"""
 
     order_no = models.CharField(
-        max_length=8, unique=True, db_index=True, primary_key=True, editable=False
+        max_length=10, unique=True, db_index=True, primary_key=True, editable=False
     )
     art_no = models.CharField(max_length=50, db_index=True)
     status = models.IntegerField(
@@ -57,4 +57,8 @@ class Orders(models.Model):
             from api.views import generate_unique_order_no
 
             self.order_no = generate_unique_order_no()
+        if not self.timestamp:
+            from django.utils import timezone
+
+            self.timestamp = timezone.now()
         super().save(*args, **kwargs)
